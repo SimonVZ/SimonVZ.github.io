@@ -21,11 +21,14 @@
 			var camera, scene, renderer, animation = true, modelLoaded = false;
 
                         // var model = 'a90.stl';
-                        var model = 'cane1M-99.9.stl';
-                        // var model = 'original-99.stl';
+                        // var model = 'cane1M-99.9.stl';
+                        var model = 'original-80.stl';
 
 			init();
+
+                        var s = Date.now();
                         load_model('data/' + model);
+
 			animate();
 
 			function init() {
@@ -56,6 +59,7 @@
                                 var mesh = create_model_mesh(geometry);
                                 scene.add(mesh);
                                 modelLoaded = true;
+                                checkTime();
                             } );
 
                             loader.load(modelName);
@@ -102,6 +106,11 @@
                             // tilt
                             // mesh.rotation.x = -Math.PI/5;
                             // mesh.rotation.y = Math.PI/5;
+                        }
+
+                        function checkTime() {
+                                var e = Date.now();
+                                console.log( "Total parse time: " + (e-s) + " ms" );
                         }
 
 			function onWindowResize() {
