@@ -1,148 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<title>Binary model view - CTM-based loading</title>
-		<meta charset="utf-8">
-		<style>
-			body {
-				margin: 0px;
-				background-color: #000000;
-				overflow: hidden;
-			}
-		</style>
-	</head>
-	<body>
+<head>
+    <title>Three.js - CTMLoader issue - hangs or crashes</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            margin: 0px;
+            background-color: #000000;
+            overflow: hidden;
+        }
+    </style>
+</head>
 
-        <script src="js/three.min.js"></script>
+<body>
 
-        <script src="js/ctm/lzma.js"></script>
-	<script src="js/ctm/ctm.js"></script>
-	<script src="js/ctm/CTMLoader.js"></script>
+<script src="js/three.min.js"></script>
+<script src="js/ctm/lzma.js"></script>
+<script src="js/ctm/ctm.js"></script>
+<script src="js/ctm/CTMLoader.js"></script>
 
-        <script>
+    <script>
 
-            var camera, scene, renderer, animation = true, modelLoaded = false;
+        var camera, scene, renderer, animation = true, modelLoaded = false;
 
-            // var model = 'a90.stl';
-            // var model = 'cane1M-99.9.stl';
-            // var model = 'original-99.stl';
-            var model = 'ctm/original-80.ctm';
+        var model = 'ctm/original-80.ctm';
 
-            init();
+        init();
+        load_model('data/' + model);
+        animate();
 
-            var s = Date.now();
-            load_model('data/' + model);
+        function init() {
 
-            animate();
+            // renderer
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize( window.innerWidth, window.innerHeight );
+            document.body.appendChild( renderer.domElement );
 
-            function init() {
+            // camera
+            camera = new THREE.PerspectiveCamera( 35, window.innerWidth/window.innerHeight, 1, 2000 );
+            camera.position.z = 25;
 
-                // renderer
-                renderer = new THREE.WebGLRenderer();
-                renderer.setSize( window.innerWidth, window.innerHeight );
-                document.body.appendChild( renderer.domElement );
+            // scene
+            scene = new THREE.Scene();
+            window.addEventListener( 'resize', onWindowResize, false );
+            addMouseHandler();
+        }
 
-                // camera
-                camera = new THREE.PerspectiveCamera( 35, window.innerWidth/window.innerHeight, 1, 2000 );
-                camera.position.z = 5;
+        function load_model(modelName) {
 
-                // scene
-                scene = new THREE.Scene();
-                window.addEventListener( 'resize', onWindowResize, false );
-                addMouseHandler();
+            var loader = new THREE.CTMLoader();
+
+                loader.load(modelName, function(geometry) {
+                geometry.name = modelName;
+
+                var mesh = create_model_mesh(geometry);
+                scene.add(mesh);
+                modelLoaded = true;
+                // console.log(modelName + ' loaded -> vertices: ' + geometry.vertices.length + ' faces: ' + geometry.vertices.length);
+
+            }, { useWorker: true } );
+        }
+
+        function create_model_mesh(geometry) {
+
+            console.log('creating new mesh for ' + geometry.name);
+
+            var material = new THREE.MeshNormalMaterial();
+            var mesh = new THREE.Mesh(geometry, material);
+
+            mesh.name = "STLModel";
+
+            // scale and move mesh to the origin (0, 0, 0)
+            normalize_mesh(mesh);
+
+            console.log('created new mesh, id: ' + mesh.id);
+            return mesh;
+        }
+
+
+        function normalize_mesh(mesh) {
+
+            if (!mesh.geometry.boundingBox)
+                mesh.geometry.computeBoundingBox();
+
+            var scale = 0.5*(mesh.geometry.boundingBox.max.y - mesh.geometry.boundingBox.min.y);
+            var center = mesh.geometry.boundingBox.center();
+
+            var factor = scale > 0.00001 ? 1.4/scale : 1.0;
+            mesh.scale.set(factor, factor, factor);
+            mesh.position.set(-center.x*factor, -center.y*factor, -center.z*factor);
+        }
+
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize( window.innerWidth, window.innerHeight );
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (animation) {
+                var mesh = scene.getObjectByName("STLModel", true);
+                if (mesh)
+                    mesh.rotation.y += 0.01;
             }
 
-            function load_model(modelName) {
+            renderer.render(scene, camera);
+        }
 
-                var loader = new THREE.CTMLoader();
+        function addMouseHandler() {
+            var dom = renderer.domElement;
+            dom.addEventListener('mouseup', function(event) {
+                event.preventDefault();
+                animation = !animation;
+            });
+        }
 
-		loader.load(modelName, function(geometry) {
-                    geometry.name = modelName;
-
-                    var mesh = create_model_mesh(geometry);
-                    scene.add(mesh);
-                    modelLoaded = true;
-                    // console.log(modelName + ' loaded -> vertices: ' + geometry.vertices.length + ' faces: ' + geometry.vertices.length);
-                    checkTime();
-
-		}, { useWorker: true } );
-            }
-
-            function create_model_mesh(geometry) {
-
-                console.log('creating new mesh for ' + geometry.name);
-
-                var material = new THREE.MeshNormalMaterial();
-                var mesh = new THREE.Mesh(geometry, material);
-
-                mesh.name = "STLModel";
-
-                // scale and move mesh to the origin (0, 0, 0)
-                normalize_mesh(mesh);
-
-                console.log('created new mesh, id: ' + mesh.id);
-                return mesh;
-            }
-
-
-            function normalize_mesh(mesh) {
-
-                // move
-                var center = new THREE.Vector3();
-
-                if (!mesh.geometry.boundingBox)
-                    mesh.geometry.computeBoundingBox();
-
-                // scale
-                var scale = mesh.geometry.boundingBox.max.y - mesh.geometry.boundingBox.min.y
-                var scale = mesh.geometry.boundingSphere.radius;
-                mesh.scale.set(1./scale, 1./scale, 1./scale);
-
-                var box = new THREE.Box3(mesh.geometry.boundingBox.min, boxMax = mesh.geometry.boundingBox.max);
-                center.copy(box.center()).divideScalar(scale);
-                // center.copy(mesh.geometry.boundingSphere.center).divideScalar(scale);
-
-                mesh.position.copy(center.negate());
-
-
-                // tilt
-                // mesh.rotation.x = -Math.PI/5;
-                // mesh.rotation.y = Math.PI/5;
-            }
-
-	    function checkTime() {
-                    var e = Date.now();
-		    console.log( "Total parse time: " + (e-s) + " ms" );
-	    }
-
-            function onWindowResize() {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-
-                renderer.setSize( window.innerWidth, window.innerHeight );
-            }
-
-            function animate() {
-                requestAnimationFrame(animate);
-
-                if (animation) {
-                    var mesh = scene.getObjectByName("STLModel", true);
-                    if (mesh)
-                        mesh.rotation.y += 0.01;
-                }
-
-                renderer.render(scene, camera);
-            }
-
-            function addMouseHandler() {
-                var dom = renderer.domElement;
-                dom.addEventListener('mouseup', function(event) {
-                    event.preventDefault();
-                    animation = !animation;
-                });
-            }
-
-        </script>
+    </script>
 
 	</body>
 </html>

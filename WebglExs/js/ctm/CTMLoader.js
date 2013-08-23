@@ -103,7 +103,7 @@ THREE.CTMLoader.prototype.load = function( url, callback, parameters ) {
 
 				var binaryData = xhr.responseText;
 
-				//var s = Date.now();
+				var s = Date.now();
 
 				if ( parameters.useWorker ) {
 
@@ -117,6 +117,9 @@ THREE.CTMLoader.prototype.load = function( url, callback, parameters ) {
 
 							var ctmFile = files[ i ];
 
+                                                        var tt = Date.now();
+                                                        console.log("CTM data loaded, starting parsing, using buffers: " + useBuffers + " -> " + (tt - s) + " ms");
+
 							if ( useBuffers ) {
 
 								scope.createModelBuffers( ctmFile, callback );
@@ -129,8 +132,8 @@ THREE.CTMLoader.prototype.load = function( url, callback, parameters ) {
 
 						}
 
-						//var e = Date.now();
-						//console.log( "CTM data parse time [worker]: " + (e-s) + " ms" );
+						var e = Date.now();
+						console.log( "CTM data parse time [worker]: " + (e-s) + " ms" );
 
 					};
 
@@ -145,6 +148,9 @@ THREE.CTMLoader.prototype.load = function( url, callback, parameters ) {
 
 						var ctmFile = new CTM.File( stream );
 
+                                                var tt = Date.now();
+                                                console.log("CTM data loaded, starting parsign: " + (tt - s) + " ms");
+
 						if ( useBuffers ) {
 
 							scope.createModelBuffers( ctmFile, callback );
@@ -157,8 +163,8 @@ THREE.CTMLoader.prototype.load = function( url, callback, parameters ) {
 
 					}
 
-					//var e = Date.now();
-					//console.log( "CTM data parse time [inline]: " + (e-s) + " ms" );
+					var e = Date.now();
+					console.log( "CTM data parse time [inline]: " + (e-s) + " ms" );
 
 				}
 
@@ -231,11 +237,12 @@ THREE.CTMLoader.prototype.createModelBuffers = function ( file, callback ) {
 
 		// reorder vertices
 		// (needed for buffer splitting, to keep together face vertices)
+		console.log("createModelBuffers -> reorder vertices");
 
 		if ( reorderVertices ) {
 
 			var newFaces = new Uint32Array( vertexIndexArray.length ),
-				newVertices = new Float32Array( vertexPositionArray.length );
+			    newVertices = new Float32Array( vertexPositionArray.length );
 
 			var newNormals, newUvs, newColors;
 
@@ -321,6 +328,7 @@ THREE.CTMLoader.prototype.createModelBuffers = function ( file, callback ) {
 		}
 
 		// compute offsets
+        console.log("createModelBuffers -> compute offsets");
 
 		scope.offsets = [];
 
@@ -377,6 +385,7 @@ THREE.CTMLoader.prototype.createModelBuffers = function ( file, callback ) {
 		var vertexIndexArray16 = new Uint16Array( vertexIndexArray );
 
 		// attributes
+        console.log("createModelBuffers -> attributes");
 
 		var attributes = scope.attributes;
 
@@ -401,6 +410,7 @@ THREE.CTMLoader.prototype.createModelBuffers = function ( file, callback ) {
 
 		}
 
+        console.log("createModelBuffers -> done");
 	}
 
 	Model.prototype = Object.create( THREE.BufferGeometry.prototype );
