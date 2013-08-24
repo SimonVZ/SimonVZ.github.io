@@ -334,6 +334,21 @@ THREE.CTMLoader.prototype.createModelBuffers = function ( file, callback ) {
 
 		var indices = vertexIndexArray;
 
+		// let's count and implode sprawling triangles
+        var vcount = 0;
+        for ( var i = 0; i < indices.length; i += 3) {
+            if ( Math.abs(indices[i] - indices[i+1]) > 65535 ||
+                 Math.abs(indices[i+1] - indices[i+2]) > 65535 ||
+                 Math.abs(indices[i+2] - indices[i]) > 65535) {
+                // console.log( "(" + indices[i] + "," + indices[i+1] + "," + indices[i+2] + ")");
+                indices[i+1] = indices[i];
+                indices[i+2] = indices[i];
+                vcount++;
+            }
+        }
+        console.log("number of imploded triangles: " + vcount);
+
+
 		var start = 0,
 			min = vertexPositionArray.length,
 			max = 0,
@@ -354,11 +369,11 @@ THREE.CTMLoader.prototype.createModelBuffers = function ( file, callback ) {
 
 				i -= 3;
 
-				for ( var k = start; k < i; ++ k ) {
-
-					indices[ k ] -= minPrev;
-
+                if (minPrev > 0) {
+                    for ( var k = start; k < i; ++ k )
+                        indices[ k ] -= minPrev;
 				}
+
 
 				scope.offsets.push( { start: start, count: i - start, index: minPrev } );
 
